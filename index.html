@@ -57,9 +57,9 @@
         attribute vec3 VertexPosition;
         attribute vec2 TextureCoord;
         
-        uniform float uXoffset;
-        uniform float uYoffset;
-        uniform float uScale;
+        //uniform float uXoffset;
+        //uniform float uYoffset;
+        //uniform float uScale;
         
         uniform float step;
         uniform float texw, texh;
@@ -73,8 +73,8 @@
             stepu = step / texw; // Saves a division in the fragment shader
             stepv = step / texh;
 
-            vec3 pos = VertexPosition + vec3(uXoffset, uYoffset, 0.0);
-            pos = pos * uScale;
+            vec3 pos = VertexPosition;// + vec3(uXoffset, uYoffset, 0.0);
+            //pos = pos * uScale;
             gl_Position = vec4(pos, 1.0);    
         }
 
@@ -327,8 +327,8 @@
         vec3 texel;
         texel = texture2D(texture, uv).rgb;
         vec2 distvec = remap(texel.rg);
-        // vec2 rainbow = 0.5+0.5*(normalize(distvec));
-        // gl_FragColor = vec4(rainbow, 1.0-(length(distvec)+texel.b-0.5)*4.0, 1.0);
+        //vec2 rainbow = 0.5+0.5*(normalize(distvec));
+        //gl_FragColor = vec4(rainbow, 1.0-(length(distvec)+texel.b-0.5)*4.0, 1.0);
         float dist = length(distvec)+(texel.b-0.5)/texw;
         gl_FragColor = vec4(vec2(mod(10.0*dist, 1.0)), texel.b, 1.0);
     }
