@@ -9,6 +9,7 @@ function initGL(canvas) {
             gl = canvas.getContext("experimental-webgl");
             gl.viewportWidth = canvas.width;
             gl.viewportHeight = canvas.height;
+            gl.SwapIntervalEXT(0)
         } catch (e) {
         }
         if (!gl) {
@@ -91,6 +92,7 @@ function initShaders() {
     shaderPrograms[0] = generateShader("fragment_seed", "vertex");
     shaderPrograms[1] = generateShader("fragment_flood", "vertex");
     shaderPrograms[2] = generateShader("fragment_display", "vertex");
+    //shaderPrograms[3] = generateShader("FragmentShader", "VertexShader");
 }
 
 function handleLoadedTexture(texture) {
@@ -114,15 +116,16 @@ function createBufferTexture (texture, width, height) {
     var GLblack = [0.0, 0.0, 0.0, 0.0];
     gl.texParameteri( gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST );
     gl.texParameteri( gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST );
-    gl.texParameteri( gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE );
-    gl.texParameteri( gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE );
-    //gl.texParameterfv( gl.TEXTURE_2D, gl.TEXTURE_BORDER_COLOR, GLblack );
+    gl.texParameteri( gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_BORDER );
+    gl.texParameteri( gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_BORDER );
+    //TODO: "zero outside"
+    //gl.texParameteriv( gl.TEXTURE_2D, gl.TEXTURE_BORDER_COLOR, GLblack );
     gl.texImage2D( gl.TEXTURE_2D, 0, gl.RGBA, width, height, 0, gl.RGBA, gl.UNSIGNED_BYTE, null );
     gl.bindTexture( gl.TEXTURE_2D, null);
 }
 
-imWidth = 512;
-imHeight = imWidth;
+var imWidth = 512.0;
+var imHeight = imWidth;
 var Textures = new Array();
 function initTextures() {
     Textures[0] = gl.createTexture();
@@ -191,7 +194,7 @@ function renderScene(shader, width, height) {
     gl.useProgram(shaderPrograms[shader]);
 
     gl.viewport(0, 0, gl.viewportWidth, gl.viewportHeight);
-    //gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+    gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
     gl.bindBuffer(gl.ARRAY_BUFFER, quadVertexPositionBuffer);
     gl.vertexAttribPointer(shaderPrograms[shader].VertexPosition, quadVertexPositionBuffer.itemSize, gl.FLOAT, false, 0, 0);
@@ -199,14 +202,15 @@ function renderScene(shader, width, height) {
     gl.bindBuffer(gl.ARRAY_BUFFER, quadVertexTextureCoordBuffer);
     gl.vertexAttribPointer(shaderPrograms[shader].TextureCoord, quadVertexTextureCoordBuffer.itemSize, gl.FLOAT, false, 0, 0);
 
-    //gl.activeTexture(gl.TEXTURE0);
-    //gl.uniform1i(shaderPrograms[shader].texture, 0); // Texture unit 0
-
+    gl.activeTexture(gl.TEXTURE0);
+    gl.uniform1i(shaderPrograms[shader].texture, 0); // Texture unit 0
+    //updateShader(shader)
 
     gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, quadVertexIndexBuffer);    
 
     // Draw the single quad
     gl.drawElements(gl.TRIANGLES, quadVertexIndexBuffer.numItems, gl.UNSIGNED_SHORT, 0);
+    gl.useProgram(null);
 }
 
 function updateShader(shader){
@@ -221,36 +225,39 @@ function updateShader(shader){
     gl.uniform1f(shaderPrograms[shader].texh, texh);
     gl.uniform1f(shaderPrograms[shader].step, stepsize);
     gl.uniform1f(shaderPrograms[shader].texlevels, texlevels);
+    
+    gl.uniform1f(shaderPrograms[shader].texture, null);
+    gl.useProgram(null)
 }
 
-var texw = imWidth;
 var texh = imHeight;
-var stepsize = 0;
-var texlevels = 65536.0;
-var lastRendered;
-var first = true;
+var texw = imWidth;
+var stepsize = 0.0;
+var texlevels = 65536;
+var lastRendered = 1;
 function tempName() {
     updateShader(0);
     gl.bindTexture(gl.TEXTURE_2D, Textures[0]);
     gl.bindFramebuffer(gl.FRAMEBUFFER, framebuffer);
     lastRendered = 1;
-    gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, Textures[lastRendered], 0);
+    gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, Textures[lastRendered], null);
     renderScene(0, texw, texh);
 
-    stepsize = (texw > texh ? texw/2: texh/2);
+    stepsize = (texw > texh ? texw/2.0: texh/2.0);
     while (stepsize > 1) {
         updateShader(1);
         gl.bindTexture(gl.TEXTURE_2D, Textures[lastRendered]);
         lastRendered = (lastRendered == 1 ? 2 : 1); // Swap 1 <-> 2
         // Swap which texture is attached to the FBO
-        gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, Textures[lastRendered], 0);
+        gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, Textures[lastRendered], null);
         renderScene(1, texw, texh);
+        //console.log(stepsize);
         stepsize = stepsize / 2;
     }
-
     gl.bindFramebuffer(gl.FRAMEBUFFER, null);
     gl.bindTexture(gl.TEXTURE_2D, Textures[lastRendered]);
 
+    stepsize = 0;
     updateShader(2);
     renderScene(2, texw, texh);
 }
@@ -283,7 +290,6 @@ function WebGL() {
         var yDelta = ev.clientY - yMouseDown;
         xOffset = xOldOffset + (xDelta / canvas.width / scale * 2.0);
         yOffset = yOldOffset - (yDelta / canvas.height / scale * 2.0); // Flip y axis
-        tempName();
     }
     // "onmousedrag" doesn't work, it seems, hence this kludge
     canvas.onmousemove = function(ev) {
@@ -292,13 +298,11 @@ function WebGL() {
         var yDelta = ev.clientY - yMouseDown;
         xOffset = xOldOffset + (xDelta / canvas.width / scale * 2.0);
         yOffset = yOldOffset - (yDelta / canvas.height / scale * 2.0); // Flip y axis
-        tempName();
     }
     var wheelHandler = function(ev) {
         var factor = 1.1; // Scale increment per click
         if (ev.shiftKey) factor = 1.01;
         scale *= ((ev.detail || ev.wheelDelta) < 0) ? factor : 1.0/factor;
-        tempName();
         ev.preventDefault();
     };
     canvas.addEventListener('DOMMouseScroll', wheelHandler, false);
@@ -309,8 +313,7 @@ function WebGL() {
     initBuffers();
     initTextures();
     initFramebuffer();
-    
+     
     gl.clearColor(0.0, 0.0, 0.0, 1.0);
-
     tick();
 }
