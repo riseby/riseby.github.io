@@ -9,7 +9,7 @@ function initGL(canvas) {
             gl = canvas.getContext("experimental-webgl");
             gl.viewportWidth = canvas.width;
             gl.viewportHeight = canvas.height;
-            gl.SwapIntervalEXT(0)
+            gl.getExtension("OES_standard_derivatives");
         } catch (e) {
         }
         if (!gl) {
@@ -91,8 +91,8 @@ var shaderPrograms = new Array();
 function initShaders() {
     shaderPrograms[0] = generateShader("fragment_seed", "vertex");
     shaderPrograms[1] = generateShader("fragment_flood", "vertex");
-    shaderPrograms[2] = generateShader("fragment_display", "vertex");
-    //shaderPrograms[3] = generateShader("FragmentShader", "VertexShader");
+    shaderPrograms[2] = generateShader("fragment_display", "vertex_display");
+    shaderPrograms[3] = generateShader("fragment1", "vertex_display");
 }
 
 function handleLoadedTexture(texture) {
@@ -104,8 +104,8 @@ function handleLoadedTexture(texture) {
     
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.REPEAT);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.REPEAT);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
 
     gl.bindTexture(gl.TEXTURE_2D, null);
 }
@@ -113,7 +113,6 @@ function handleLoadedTexture(texture) {
 function createBufferTexture (texture, width, height) {
     gl.activeTexture( gl.TEXTURE0 );
     gl.bindTexture(gl.TEXTURE_2D, texture);
-    var GLblack = [0.0, 0.0, 0.0, 0.0];
     gl.texParameteri( gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST );
     gl.texParameteri( gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST );
     //gl.texParameteri( gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_BORDER );
@@ -203,7 +202,7 @@ function renderScene(shader, width, height) {
     gl.vertexAttribPointer(shaderPrograms[shader].TextureCoord, quadVertexTextureCoordBuffer.itemSize, gl.FLOAT, false, 0, 0);
 
     gl.activeTexture(gl.TEXTURE0);
-    gl.uniform1i(shaderPrograms[shader].texture, 0); // Texture unit 0
+    //gl.uniform1i(shaderPrograms[shader].texture, 0); // Texture unit 0
     //updateShader(shader)
 
     gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, quadVertexIndexBuffer);    
@@ -244,7 +243,7 @@ function tempName() {
     renderScene(0, texw, texh);
 
     stepsize = (texw > texh ? texw/2.0: texh/2.0);
-    while (stepsize > 1) {
+    while (stepsize > 0.5) {
         updateShader(1);
         gl.bindTexture(gl.TEXTURE_2D, Textures[lastRendered]);
         lastRendered = (lastRendered == 1 ? 2 : 1); // Swap 1 <-> 2
@@ -256,8 +255,9 @@ function tempName() {
     }
     gl.bindFramebuffer(gl.FRAMEBUFFER, null);
     gl.bindTexture(gl.TEXTURE_2D, Textures[lastRendered]);
+    //gl.bindTexture(gl.TEXTURE_2D, Textures[0]);
 
-    stepsize = 0;
+    stepsize = 1.0;
     updateShader(2);
     renderScene(2, texw, texh);
 }
@@ -315,5 +315,6 @@ function WebGL() {
     initFramebuffer();
      
     gl.clearColor(0.0, 0.0, 0.0, 1.0);
+    gl.enable(gl.DEPTH_TEST);
     tick();
 }
