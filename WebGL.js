@@ -93,6 +93,7 @@ function initShaders() {
     shaderPrograms[1] = generateShader("fragment_flood", "vertex");
     shaderPrograms[2] = generateShader("fragment_display", "vertex_display");
     shaderPrograms[3] = generateShader("fragment1", "vertex_display");
+    shaderPrograms[4] = generateShader("fragment2", "vertex_display");
 }
 
 function handleLoadedTexture(texture) {
@@ -123,16 +124,22 @@ function createBufferTexture (texture, width, height) {
     gl.bindTexture( gl.TEXTURE_2D, null);
 }
 
-var imWidth = 512.0;
+var imWidth = 0.0;
 var imHeight = imWidth;
+var texw = imWidth;
+var texh = imHeight;
 var Textures = new Array();
 function initTextures() {
     Textures[0] = gl.createTexture();
     Textures[0].image = new Image();
-    Textures[0].image.src = "e2.png";
+    Textures[0].image.src = "c.png";
     Textures[0].image.onload = function () {
         handleLoadedTexture(Textures[0]);
     }
+    imWidth = Textures[0].image.width;
+    imHeight = Textures[0].image.height;
+    texw = imWidth;
+    texh = imHeight;
 
     Textures[1] = gl.createTexture();
     createBufferTexture(Textures[1], imWidth, imHeight);
@@ -192,7 +199,7 @@ function initBuffers() {
 function renderScene(shader, width, height) {
     gl.useProgram(shaderPrograms[shader]);
 
-    gl.viewport(0, 0, gl.viewportWidth, gl.viewportHeight);
+    gl.viewport(0, 0, width, height);
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
     gl.bindBuffer(gl.ARRAY_BUFFER, quadVertexPositionBuffer);
@@ -229,12 +236,11 @@ function updateShader(shader){
     gl.useProgram(null)
 }
 
-var texh = imHeight;
-var texw = imWidth;
 var stepsize = 0.0;
-var texlevels = 65536;
+var texlevels = 256.0;
 var lastRendered = 1;
 function tempName() {
+    stepsize = 0.0;
     updateShader(0);
     gl.bindTexture(gl.TEXTURE_2D, Textures[0]);
     gl.bindFramebuffer(gl.FRAMEBUFFER, framebuffer);
@@ -244,6 +250,7 @@ function tempName() {
 
     stepsize = (texw > texh ? texw/2.0: texh/2.0);
     while (stepsize > 0.5) {
+        //console.log(stepsize);
         updateShader(1);
         gl.bindTexture(gl.TEXTURE_2D, Textures[lastRendered]);
         lastRendered = (lastRendered == 1 ? 2 : 1); // Swap 1 <-> 2
@@ -258,13 +265,15 @@ function tempName() {
     //gl.bindTexture(gl.TEXTURE_2D, Textures[0]);
 
     stepsize = 1.0;
-    updateShader(2);
-    renderScene(2, texw, texh);
+    var sh = 4;
+    updateShader(sh);
+    renderScene(sh, gl.viewportWidth, gl.viewportHeight);
 }
 
 function tick() {
         requestAnimFrame(tick);
         tempName();
+        
 }
 
 var xOffset = 0.0;
@@ -316,5 +325,6 @@ function WebGL() {
      
     gl.clearColor(0.0, 0.0, 0.0, 1.0);
     gl.enable(gl.DEPTH_TEST);
+    tempName();
     tick();
 }
