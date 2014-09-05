@@ -124,7 +124,7 @@ function createBufferTexture (texture, width, height) {
     gl.bindTexture( gl.TEXTURE_2D, null);
 }
 
-var imWidth = 0.0;
+var imWidth = 128.0;
 var imHeight = imWidth;
 var texw = imWidth;
 var texh = imHeight;
@@ -135,11 +135,11 @@ function initTextures() {
     Textures[0].image.src = "c.png";
     Textures[0].image.onload = function () {
         handleLoadedTexture(Textures[0]);
+        imWidth = Textures[0].image.width;
+        imHeight = Textures[0].image.height;
+        texw = imWidth;
+        texh = imHeight;
     }
-    imWidth = Textures[0].image.width;
-    imHeight = Textures[0].image.height;
-    texw = imWidth;
-    texh = imHeight;
 
     Textures[1] = gl.createTexture();
     createBufferTexture(Textures[1], imWidth, imHeight);
