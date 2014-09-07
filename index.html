@@ -10,6 +10,10 @@
       <canvas id="GLCanvas" width="512" height="512">  
             Your Browser Doesn't Support HTML5's Canvas.  
       </canvas>  
+      <select onChange='shaderChanger(this.value)'>
+        <option value='2'>Distvector visualization</option>
+        <option value='4' selected="selecte">Anti aliasing render</option>
+      </select>
       
     <script id="VertexShader" type="x-shader/x-vertex">  
         attribute vec3 VertexPosition;
@@ -385,16 +389,15 @@
         vec3 texel;
         texel = texture2D(texture, uv).rgb;
         vec2 distvec = remap(texel.rg);
-        //vec2 distvec = texel.rg;
-        //vec2 rainbow = 0.5+0.5*(normalize(distvec));
-        //vec2 rainbow = 0.5+0.5*(normalize(distvec));
-        //gl_FragColor = vec4(rainbow, 1.0-length(distvec)*4.0, 1.0);
-        float dist = length(distvec)+(texel.b-0.5)/texw;
         
+        //Distance vec vis.
+        vec2 rainbow = 0.5+0.5*(normalize(distvec));
+        gl_FragColor = vec4(rainbow, 1.0-length(distvec)*4.0, 1.0);
+        
+        // Distance vis.
+        //float dist = length(distvec)+(texel.b-0.5)/texw;
         //gl_FragColor = vec4(vec2(mod(10.0*dist, 1.0)), texel.b, 1.0);
-        //float dist = texel.b;
-        //gl_FragColor = vec4(dist, dist, dist, 1.0);
-        gl_FragColor = vec4(vec3(dist), 1.0);
+        //gl_FragColor = vec4(vec3(dist), 1.0);
     }
 </script>
 <script id="fragment1" type="x-shader/x-fragment">

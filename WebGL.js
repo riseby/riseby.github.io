@@ -132,13 +132,13 @@ var Textures = new Array();
 function initTextures() {
     Textures[0] = gl.createTexture();
     Textures[0].image = new Image();
-    Textures[0].image.src = "c.png";
+    Textures[0].image.src = "test.png";
     Textures[0].image.onload = function () {
         handleLoadedTexture(Textures[0]);
-        imWidth = Textures[0].image.width;
-        imHeight = Textures[0].image.height;
-        texw = imWidth;
-        texh = imHeight;
+        //imWidth = Textures[0].image.width;
+        //imHeight = Textures[0].image.height;
+        //texw = imWidth;
+        //texh = imHeight;
     }
 
     Textures[1] = gl.createTexture();
@@ -238,7 +238,9 @@ function updateShader(shader){
 
 var stepsize = 0.0;
 var texlevels = 256.0;
+//var texlevels = 65536.0;
 var lastRendered = 1;
+var visShader = 4;
 function tempName() {
     stepsize = 0.0;
     updateShader(0);
@@ -265,15 +267,18 @@ function tempName() {
     //gl.bindTexture(gl.TEXTURE_2D, Textures[0]);
 
     stepsize = 1.0;
-    var sh = 4;
-    updateShader(sh);
-    renderScene(sh, gl.viewportWidth, gl.viewportHeight);
+    updateShader(visShader);
+    renderScene(visShader, gl.viewportWidth, gl.viewportHeight);
 }
 
 function tick() {
         requestAnimFrame(tick);
         tempName();
         
+}
+
+function shaderChanger(value){
+    visShader = value;
 }
 
 var xOffset = 0.0;
