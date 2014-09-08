@@ -11,8 +11,9 @@
             Your Browser Doesn't Support HTML5's Canvas.  
       </canvas>  
       <select onChange='shaderChanger(this.value)'>
-        <option value='2'>Distvector visualization</option>
-        <option value='4' selected="selecte">Anti aliasing render</option>
+        <option value='2'>Jump Flooding Algorithm - Distvector</option>
+        <option value='4' selected='selected'>Anti aliasing</option>
+        <option value='3'>Paptex</option>
       </select>
       
     <script id="VertexShader" type="x-shader/x-vertex">  
@@ -407,15 +408,83 @@
     #ifdef GL_ES
     precision highp float;
     #endif
-    // Level set contour texturing, Stefan Gustavson 2009
+
+    //
+    // Description : Array and textureless GLSL 2D simplex noise function.
+    // Author : Ian McEwan, Ashima Arts.
+    // Maintainer : ijm
+    // Lastmod : 20110822 (ijm)
+    // License : Copyright (C) 2011 Ashima Arts. All rights reserved.
+    // Distributed under the MIT License. See LICENSE file.
+    // https://github.com/ashima/webgl-noise
+    //
+    vec3 mod289(vec3 x) {
+        return x - floor(x * (1.0 / 289.0)) * 289.0;
+    }
+
+    vec2 mod289(vec2 x) {
+        return x - floor(x * (1.0 / 289.0)) * 289.0;
+    }
+
+    vec3 permute(vec3 x) {
+        return mod289(((x*34.0)+1.0)*x);
+    }
+
+    float snoise(vec2 v){
+        const vec4 C = vec4(0.211324865405187, // (3.0-sqrt(3.0))/6.0
+        0.366025403784439, // 0.5*(sqrt(3.0)-1.0)
+        -0.577350269189626, // -1.0 + 2.0 * C.x
+        0.024390243902439); // 1.0 / 41.0
+        // First corner
+        vec2 i = floor(v + dot(v, C.yy) );
+        vec2 x0 = v - i + dot(i, C.xx);
+        // Other corners
+        vec2 i1;
+        //i1.x = step( x0.y, x0.x ); // x0.x > x0.y ? 1.0 : 0.0
+        //i1.y = 1.0 - i1.x;
+        i1 = (x0.x > x0.y) ? vec2(1.0, 0.0) : vec2(0.0, 1.0);
+        // x0 = x0 - 0.0 + 0.0 * C.xx ;
+        // x1 = x0 - i1 + 1.0 * C.xx ;
+        // x2 = x0 - 1.0 + 2.0 * C.xx ;
+        vec4 x12 = x0.xyxy + C.xxzz;
+        x12.xy -= i1;
+        // Permutations
+        i = mod289(i); // Avoid truncation effects in permutation
+        vec3 p = permute( permute( i.y + vec3(0.0, i1.y, 1.0 ))+ i.x + vec3(0.0, i1.x, 1.0 ));
+        vec3 m = max(0.5 - vec3(dot(x0,x0), dot(x12.xy,x12.xy), dot(x12.zw,x12.zw)), 0.0);
+        m = m*m ;
+        m = m*m ;
+        // Gradients: 41 points uniformly over a line, mapped onto a diamond.
+        // The ring size 17*17 = 289 is close to a multiple of 41 (41*7 = 287)
+        vec3 x = 2.0 * fract(p * C.www) - 1.0;
+        vec3 h = abs(x) - 0.5;
+        vec3 ox = floor(x + 0.5);
+        vec3 a0 = x - ox;
+        // Normalise gradients implicitly by scaling m
+        // Approximation of: m *= inversesqrt( a0*a0 + h*h );
+        m *= 1.79284291400159 - 0.85373472095314 * ( a0*a0 + h*h );
+        // Compute final noise value at P
+        vec3 g;
+        g.x = a0.x * x0.x + h.x * x0.y;
+        g.yz = a0.yz * x12.xz + h.yz * x12.yw;
+        return 130.0 * dot(m, g);
+    }
+
+    // Distance map contour texturing, Stefan Gustavson 2009
+    // A re-implementation of Green's method, with an
+    // 8-bit distance map but explicit texel interpolation.
     // This code is in the public domain.
+
     uniform sampler2D texture;
     uniform float texw, texh;
+    uniform float texlevels;
     varying float stepu, stepv;
     varying vec2 uv;
 
+    vec2 remap(vec2 floatdata) {
+     return floatdata * (texlevels-1.0) / texlevels * 2.0 - 1.0;
+    }
 
-    
     void main( void )
     {
       float onestepu = stepu;
@@ -429,12 +498,9 @@
       vec2 uvthis = floor(st); // Lower left corner of texel containing (u,v)
       vec2 uvlerp = st - uv00 - vec2(0.5); // Texel-local lerp blends [0,1]
 
-     // Perform explicit texture interpolation of a,b,c coefficients.
-     // This has several benefits: it works around the currently very bad
-     // texture interpolation precision in ATI hardware, it makes it possible
-     // to use local uv coordinates for each texel and thus make the texture
-     // tile and easy to crop and edit, and a non-linear interpolating ramp
-     // can be used for improved smoothness.
+      // Perform explicit texture interpolation of D coefficient.
+      // This works around the currently very bad texture interpolation
+      // precision in ATI hardware.
 
       // Center st00 on lower left texel and rescale to [0,1] for texture lookup
       vec2 st00 = (uv00  + vec2(0.5)) * vec2(onestepu, onestepv);
@@ -445,42 +511,38 @@
       vec4 rawtex01 = texture2D(texture, st00 + vec2(0.0, 0.5*onestepv));
       vec4 rawtex11 = texture2D(texture, st00 + vec2(0.5*onestepu, 0.5*onestepv));
 
-      // Restore the value for D from its 8-bit encoding?
-      vec3 gugvD00 = vec3(-rawtex00.r, rawtex00.g, rawtex00.b);
-      vec3 gugvD10 = vec3(-rawtex10.r, rawtex10.g, rawtex10.b);
-      vec3 gugvD01 = vec3(-rawtex01.r, rawtex01.g, rawtex01.b);
-      vec3 gugvD11 = vec3(-rawtex11.r, rawtex11.g, rawtex11.b);
+      // Restore the value for D from its 8-bit encoding
+      float D00 = length(remap(rawtex00.rg)) + (rawtex00.b-0.5)/texw;
+      float D10 = length(remap(rawtex10.rg)) + (rawtex10.b-0.5)/texw;
+      float D01 = length(remap(rawtex01.rg)) + (rawtex01.b-0.5)/texw;
+      float D11 = length(remap(rawtex11.rg)) + (rawtex11.b-0.5)/texw;
+      vec2 D00_10 =  vec2(D00, D10);
+      vec2 D01_11 =  vec2(D01, D11);
 
-
-      // Translate D to extrapolate F from neighboring texels to local uv
-      vec2 uvoffset = uvthis - uv00; // 0 or 1 depending on (u,v) quadrant
-      gugvD00.z -= dot(vec2(0.0, 0.0)-uvoffset, gugvD00.xy);
-      gugvD10.z -= dot(vec2(1.0, 0.0)-uvoffset, gugvD10.xy);
-      gugvD01.z -= dot(vec2(0.0, 1.0)-uvoffset, gugvD01.xy);
-      gugvD11.z -= dot(vec2(1.0, 1.0)-uvoffset, gugvD11.xy);
-      
-      // Interpolate gugvD between four closest texels
-      vec2 uvlocal = fract(st); // Texel-local st coordinates [0,1]
-      // Use a cubic interpolation ramp for a smoother contour
-      uvlerp = uvlerp * uvlerp * (3.0 - 2.0 * uvlerp); // 3*uv^2 - 2*uv^3
+      // Interpolate D between four closest texels
+      vec2 uvlocal = fract(st)-0.5; // Texel-local st coordinates [-0.5,0.5]
       // Interpolate along v
-      vec3 gugvD0 = mix(gugvD00, gugvD01, uvlerp.y);
-      vec3 gugvD1 = mix(gugvD10, gugvD11, uvlerp.y);
+      vec2 D0_1 = mix(D00_10, D01_11, uvlerp.y);
       // Interpolate along u
-      vec3 gugvD = mix(gugvD0, gugvD1, uvlerp.x);
+      float D = mix(D0_1.x, D0_1.y, uvlerp.x);
+      float n = 0.0008*snoise(uv*700.0);
+      n += 0.0001*snoise(uv*1400.0);
+      D += n;
+      //float n2 = snoise(vec2(uv.x*7.0, uv.y*500.0));
+      //D += 0.0008*n2;
 
-      // Compute  F = g_u*u + g_v*v + D
-      float F = dot(gugvD, vec3(uvlocal, 1.0));
-      // Compute length of local gradient transformed to fragment space
-      // to perform high quality anisotopic analytic antialiasing
-      float aastep = length(vec2(dot(dFdx(st), gugvD.xy), dot(dFdy(st), gugvD.xy)));
-      // 'pattern' is 1 where F>0, 0 where F<0, with proper AA around F=0.
-      float pattern = smoothstep(-aastep, aastep, F);
-
+      // Perform anisotropic analytic antialiasing (fwidth() is slightly wrong)
+      float aastep = length(vec2(dFdx(D), dFdy(D)));
+      
+      // 'pattern' is 1 where D>0, 0 where D<0, with proper AA around D=0.
+      float pattern = smoothstep(-aastep, aastep, D);
+      
+      vec3 paper = vec3(0.9 + n*100.0);
+      vec3 print = vec3(0.1);
+      vec3 fragcolor = mix(print, paper, pattern);
       // Final fragment color
-      gl_FragColor = vec4(pattern, pattern, pattern, 1.0);
-      //gl_FragColor = texture2D(texture, st);
-}
+      gl_FragColor = vec4(fragcolor, 1.0);
+    }
 </script>
 <script id="fragment2" type="x-shader/x-fragment">
     #ifdef GL_OES_standard_derivatives

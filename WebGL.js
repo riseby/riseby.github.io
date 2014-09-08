@@ -281,6 +281,10 @@ function shaderChanger(value){
     visShader = value;
 }
 
+function getSelectedShader(){
+    return visShader;
+}
+
 var xOffset = 0.0;
 var yOffset = 0.0;
 var xOldOffset = 0.0;
