@@ -525,8 +525,13 @@
       vec2 D0_1 = mix(D00_10, D01_11, uvlerp.y);
       // Interpolate along u
       float D = mix(D0_1.x, D0_1.y, uvlerp.x);
-      float n = 0.0008*snoise(uv*700.0);
-      n += 0.0001*snoise(uv*1400.0);
+      
+      //Fractal noise
+      float n = 0.0008*snoise(uv*550.0);
+      n += 0.0004*snoise(uv*1100.0);
+      n += 0.0002*snoise(uv*2200.0);
+      n += 0.0001*snoise(uv*4400.0);
+      // Make unsharp edges.
       D += n;
       //float n2 = snoise(vec2(uv.x*7.0, uv.y*500.0));
       //D += 0.0008*n2;
@@ -537,8 +542,10 @@
       // 'pattern' is 1 where D>0, 0 where D<0, with proper AA around D=0.
       float pattern = smoothstep(-aastep, aastep, D);
       
-      vec3 paper = vec3(0.9 + n*100.0);
-      vec3 print = vec3(0.1);
+      // Paper and print colors.
+      // Yellow tinted paper
+      vec3 paper = vec3(0.90 + abs(n)*90.0, 0.90 + abs(n)*90.0, 0.70 + abs(n)*90.0);
+      vec3 print = vec3(0.1 + abs(n)*90.0);
       vec3 fragcolor = mix(print, paper, pattern);
       // Final fragment color
       gl_FragColor = vec4(fragcolor, 1.0);
