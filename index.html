@@ -5,17 +5,146 @@
         <!-- Include Our WebGL JS file -->
         <script type="text/javascript" src="webgl-utils.js"></script>
         <script src="WebGL.js" type="text/javascript"></script>
+        <!-- Include jquery -->
+        <script src="http://code.jquery.com/jquery-2.1.1.min.js"></script> 
+        <!-- <script src="jquery.js"></script> -->
+        <!-- Bootstrap -->
+        <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.2.0/css/bootstrap.min.css">
+        <!-- Include CSS -->
+        <link rel="stylesheet" type="text/css" href="style.css">
     </head>
-    <body onload="WebGL()">  
-      <canvas id="GLCanvas" width="512" height="512">  
-            Your Browser Doesn't Support HTML5's Canvas.  
-      </canvas>  
-      <select onChange='shaderChanger(this.value)'>
-        <option value='2'>Jump Flooding Algorithm - Distvector</option>
-        <option value='4' selected='selected'>Anti aliasing</option>
-        <option value='3'>Paptex</option>
-      </select>
-      
+    <body>
+      <div class='container'>
+        <h1>Paptex</h1>
+        <div class='row'>
+          <div class='col-md-6'>
+            <canvas id="GLCanvas" width="512" height="512">  
+                  Your Browser Doesn't Support HTML5's Canvas.  
+            </canvas>
+          </div>
+          <div class='col-md-6'>
+            <div class='row'>
+              <div class='col-md-6'>
+                <label for='shaderSelect'>Shader:</label>
+                <select class='form-control' id='shaderSelect' onChange='shaderChanger(this.value)'>
+                  <option value='2'>Jump Flooding Algorithm - Distvector</option>
+                  <option value='4'>Anti aliasing</option>
+                  <option value='3' selected='selected'>Paptex</option>
+                </select>
+              </div>
+              <div class='col-md-4'>
+                <label for='fontSelect'>Font:</label>
+                <select class='form-control' id='fontSelect' onChange='updateFont(this.value)'>
+                  <option value='monospace' selected='selected'>Monospace</option>
+                  <option value='serif'>Serif</option>
+                  <option value='sans-serif'>Sans-serif</option>
+                </select>
+              </div>
+              <div class='col-md-2'>
+                <label for='fontSizeSelect'>Size px:</label>
+                <select class='form-control' id='fontSizeSelect' onChange='updateFontSize(this.value)'>
+                  <option value='18'>18</option>
+                  <option value='19'>19</option>
+                  <option value='20' selected='selected'>20</option>
+                  <option value='21'>21</option>
+                  <option value='22'>22</option>
+                  <option value='24'>24</option>
+                  <option value='25'>25</option>
+                  <option value='26'>26</option>
+                </select>
+              </div>
+            </div>  
+            <label for='inputTextArea'>Text:</label>
+            <textarea class='form-control' id='inputTextArea'>Type something!</textarea>
+            <label for='textCanvas'>Input texture:</label>
+            <canvas id="textCanvas" width="128" height="128"></canvas>
+            
+          </div>
+        </div>
+      </div>
+      <script>
+        $( 'textarea' ).keyup(function(event) { 
+          updateText(this.value);
+        });
+      </script>
+
+      <script type="text/javascript">
+        function init(){
+          WebGL();
+          setSelectedValues();
+          renderCanvas();
+        }
+
+        var font;
+        var text;
+        function setSelectedValues(){
+          font = document.getElementById('fontSelect').value;
+          text = document.getElementById('inputTextArea').value;
+          fontSize = document.getElementById('fontSizeSelect').value;
+          var shaderVal = document.getElementById('shaderSelect').value;
+          shaderChanger(shaderVal);
+
+        }
+
+        function updateFont(value) {
+          font = value;
+          renderCanvas();
+        }
+
+        function updateText(newText) {
+          text = newText;
+          renderCanvas();
+        }
+
+        function updateFontSize(newSize) {
+          fontSize = newSize;
+          renderCanvas();
+        }
+
+        function renderCanvas() {
+          var canvas = document.getElementById('textCanvas');
+          var ctx = canvas.getContext('2d');
+          ctx.clearRect(0, 0, canvas.width, canvas.height);
+          ctx.fillStyle = "#FFF"
+          ctx.fillRect(0,0,canvas.width, canvas.height);
+          var textToWrite = text;
+          var textSize = +fontSize;
+          ctx.font = fontSize + "px " + font;
+          ctx.fillStyle = "#000";
+          ctx.textAlign = 'top';
+          ctx.wrapText(textToWrite, 10, textSize, canvas.width, textSize);
+          updateInputTexture();
+        }
+
+        CanvasRenderingContext2D.prototype.wrapText = function (text, x, y, maxWidth, lineHeight) {
+
+          var lines = text.split("\n");
+
+          for (var i = 0; i < lines.length; i++) {
+
+            var words = lines[i].split(' ');
+            var line = '';
+
+            for (var n = 0; n < words.length; n++) {
+              var testLine = line + words[n] + ' ';
+              var metrics = this.measureText(testLine);
+              var testWidth = metrics.width;
+              if (testWidth > maxWidth && n > 0) {
+                  this.fillText(line, x, y);
+                  line = words[n] + ' ';
+                  y += lineHeight;
+              } else {
+                line = testLine;
+              }
+            }
+
+            this.fillText(line, x, y);
+            y += lineHeight;
+          }
+        };
+        window.onload = init;
+      </script>
+
     <script id="VertexShader" type="x-shader/x-vertex">  
         attribute vec3 VertexPosition;
         attribute vec2 TextureCoord;
@@ -542,12 +671,21 @@
       // 'pattern' is 1 where D>0, 0 where D<0, with proper AA around D=0.
       float pattern = smoothstep(-aastep, aastep, D);
       
+      // Misscolored paper grains.
+      float n2 = snoise(uv*60.0);
+      float n3 = snoise(uv*30.0)*0.5 + 0.5;
+      n3 = smoothstep(0.8, 0.9, n3);
+      //float val = smoothstep(0.95, 0.97, n3*(1.0-abs(n2)));
+      //vec3 temp = vec3(val*0.9, val*0.8, val*0.6);
+
       // Paper and print colors.
       // Yellow tinted paper
       vec3 paper = vec3(0.90 + abs(n)*90.0, 0.90 + abs(n)*90.0, 0.70 + abs(n)*90.0);
+      //paper -= temp;
       vec3 print = vec3(0.1 + abs(n)*90.0);
       vec3 fragcolor = mix(print, paper, pattern);
       // Final fragment color
+      // gl_FragColor = vec4(temp, 1.0);
       gl_FragColor = vec4(fragcolor, 1.0);
     }
 </script>

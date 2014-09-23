@@ -96,12 +96,12 @@ function initShaders() {
     shaderPrograms[4] = generateShader("fragment2", "vertex_display");
 }
 
-function handleLoadedTexture(texture) {
+function handleLoadedTexture(texture, image) {
     gl.activeTexture( gl.TEXTURE0 );
     gl.bindTexture(gl.TEXTURE_2D, texture);
     gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
     
-    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, texture.image);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, image);
     
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
@@ -124,6 +124,10 @@ function createBufferTexture (texture, width, height) {
     gl.bindTexture( gl.TEXTURE_2D, null);
 }
 
+function updateInputTexture() {
+    handleLoadedTexture(Textures[0], document.getElementById('textCanvas'));
+}
+
 var imWidth = 128.0;
 var imHeight = imWidth;
 var texw = imWidth;
@@ -133,13 +137,13 @@ function initTextures() {
     Textures[0] = gl.createTexture();
     Textures[0].image = new Image();
     Textures[0].image.src = "test.png";
-    Textures[0].image.onload = function () {
-        handleLoadedTexture(Textures[0]);
+    // Textures[0].image.onload = function () {
+        handleLoadedTexture(Textures[0], Textures[0].image);
         //imWidth = Textures[0].image.width;
         //imHeight = Textures[0].image.height;
         //texw = imWidth;
         //texh = imHeight;
-    }
+    // }
 
     Textures[1] = gl.createTexture();
     createBufferTexture(Textures[1], imWidth, imHeight);
@@ -240,7 +244,7 @@ var stepsize = 0.0;
 var texlevels = 256.0;
 //var texlevels = 65536.0;
 var lastRendered = 1;
-var visShader = 4;
+var visShader = 3;
 function tempName() {
     stepsize = 0.0;
     updateShader(0);
