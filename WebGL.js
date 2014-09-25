@@ -83,7 +83,7 @@ function generateShader(fid, vid){
     shaderProgram.step = gl.getUniformLocation(shaderProgram, "step");
     shaderProgram.texlevels = gl.getUniformLocation(shaderProgram, "texlevels");
 
-    //gl.useProgram();
+    gl.useProgram(null);
     return shaderProgram;
 }
 
@@ -236,7 +236,7 @@ function updateShader(shader){
     gl.uniform1f(shaderPrograms[shader].step, stepsize);
     gl.uniform1f(shaderPrograms[shader].texlevels, texlevels);
     
-    gl.uniform1f(shaderPrograms[shader].texture, null);
+    //gl.uniform1f(shaderPrograms[shader].texture, null);
     gl.useProgram(null)
 }
 

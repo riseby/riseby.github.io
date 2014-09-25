@@ -1,3 +1,4 @@
+<!DOCTYPE html>
 <html>
     <head>
         <meta charset="UTF-8">
@@ -10,25 +11,33 @@
         <!-- <script src="jquery.js"></script> -->
         <!-- Bootstrap -->
         <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.2.0/css/bootstrap.min.css">
+        <!-- Google fonts -->
+        <!-- <link rel="stylesheet" type="text/css" href="http://fonts.googleapis.com/css?family=Cutive"> -->
+        <link href='http://fonts.googleapis.com/css?family=Cutive|Cutive+Mono|Gloria+Hallelujah|Dancing+Script' rel='stylesheet' type='text/css'>
         <!-- Include CSS -->
         <link rel="stylesheet" type="text/css" href="style.css">
     </head>
     <body>
       <div class='container'>
-        <h1>Paptex</h1>
-        <div class='row'>
+        <!-- <div class='page-header'>
+          <h1>Paptex</h1>
+        </div> -->
+        <div class='row top40'>
           <div class='col-md-6'>
-            <canvas id="GLCanvas" width="512" height="512">  
-                  Your Browser Doesn't Support HTML5's Canvas.  
-            </canvas>
+            <div class="container-canvas-512">
+              <canvas id="GLCanvas" width="512" height="512">  
+                    Your Browser Doesn't Support HTML5's Canvas.  
+              </canvas>
+              <label for='GLCanvas'>Drag to move and scroll to zoom.</label>
+            </div>
           </div>
           <div class='col-md-6'>
             <div class='row'>
-              <div class='col-md-6'>
+              <div class='col-md-4'>
                 <label for='shaderSelect'>Shader:</label>
                 <select class='form-control' id='shaderSelect' onChange='shaderChanger(this.value)'>
-                  <option value='2'>Jump Flooding Algorithm - Distvector</option>
-                  <option value='4'>Anti aliasing</option>
+                  <option value='2'>Distance field</option>
+                  <option value='4'>Anti-aliasing</option>
                   <option value='3' selected='selected'>Paptex</option>
                 </select>
               </div>
@@ -38,9 +47,13 @@
                   <option value='monospace' selected='selected'>Monospace</option>
                   <option value='serif'>Serif</option>
                   <option value='sans-serif'>Sans-serif</option>
+                  <option value='Cutive'>Cutive</option>
+                  <option value='Cutive Mono'>Cutive Mono</option>
+                  <option value='Dancing Script'>Dancing Script</option>
+                  <option value='Gloria Hallelujah'>Gloria Hallelujah</option>
                 </select>
               </div>
-              <div class='col-md-2'>
+              <div class='col-md-4'>
                 <label for='fontSizeSelect'>Size px:</label>
                 <select class='form-control' id='fontSizeSelect' onChange='updateFontSize(this.value)'>
                   <option value='18'>18</option>
@@ -50,18 +63,72 @@
                   <option value='22'>22</option>
                   <option value='24'>24</option>
                   <option value='25'>25</option>
-                  <option value='26'>26</option>
+                  <option value='100'>100</option>
                 </select>
               </div>
             </div>  
-            <label for='inputTextArea'>Text:</label>
-            <textarea class='form-control' id='inputTextArea'>Type something!</textarea>
-            <label for='textCanvas'>Input texture:</label>
-            <canvas id="textCanvas" width="128" height="128"></canvas>
-            
+            <div class='row top10'>
+              <div class='col-md-6'>
+                <label for='inputTextArea'>Text:</label>
+                <textarea class='form-control' id='inputTextArea'>Type something!</textarea>
+              </div>
+              <div class='col-md-6'>
+                <label for='textCanvas'>Input texture:</label> 
+                <div class="container-canvas-128">
+                  <canvas  id="textCanvas" width="128" height="128"></canvas>
+                </div>
+              </div> 
+            </div>
+            <div class='row top10'>
+              <div class='col-md-5'>
+                <div class="panel">
+                  <div class="panel-heading">
+                    <h4 class="panel-title">Shaders</h4>
+                  </div>
+                  <div class="panel-body">
+                    <label for='shaderDistfield'>Distance field</label>
+                    <p id='shaderDistfield'>
+                      Visualization of distance field generated from
+                      the input texture.
+                    </p>
+                    <label for='shaderAA'>Anti-aliasing</label>
+                    <p id='shaderAA'>
+                      Distance-field rendered with anisotropic analytic anti-aliasing.
+                      More about it can be read <a href="http://contourtextures.wikidot.com/">here</a>.
+                    </p>
+                    <label for='shaderPaptex'>Paptex</label>
+                    <p id='shaderPaptex'>
+                      Distance-field rendered for paper-like appearance, using
+                      <a href="https://github.com/ashima/webgl-noise">simplex noise.</a>
+                    </p>
+                  </div>
+                </div>
+              </div>
+              <div class='col-md-7'>
+                <div class="panel">
+                  <div class="panel-heading">
+                    <h4 class="panel-title">About</h4>
+                  </div>
+                  <div class="panel-body">
+                    <p>
+                      This page generates paper-like images, created in 
+                      the course TNM084 Procedural imaging at Linköping University.
+                    </p>
+                    <p>
+                      Stefan Gustavsson's implementation of <a href='http://webstaff.itn.liu.se/~stegu/JFA/'>GPU jump flooding algorithm for Euclidean distance transform </a> ported to WebGL was used for generating a distance-field.
+                    </p>
+                    <p>
+                      Made by Emil Riseby.
+                    </p>
+
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </div>
+
       <script>
         $( 'textarea' ).keyup(function(event) { 
           updateText(this.value);

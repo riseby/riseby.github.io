@@ -1,12 +1,50 @@
 body {
-	background: #333333;
-	color: #ffffff;
+	background: #151515;
+	color: #FFFFFF;
 }
 
 canvas { 
-	border: 1px solid black; 
+	border: 1px solid black;
+	position: relative;
 }
 
 textarea {
 	resize: none;
+}
+
+.container-canvas-512 {
+    margin: 0 auto;
+    width: 512px;
+}
+
+.container-canvas-128 {
+    margin: 0 auto;
+    width: 128px;
+}
+
+.top10 { 
+	margin-top:10px;
+}
+
+.top40 { 
+	margin-top:40px;
+}
+
+/* Remove rounded corners, temporary solution */
+.form-control {
+	border-radius: 0;
+}
+.panel {
+	border-radius: 0;
+}
+
+/*Custom panel*/
+.panel {
+	background: #333333;
+	color: #ffffff;
+}
+
+.panel-body {
+	background: #FFFFFF;
+	color: #000000;
 }
