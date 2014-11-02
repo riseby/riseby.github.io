@@ -92,8 +92,8 @@ function initShaders() {
     shaderPrograms[0] = generateShader("fragment_seed", "vertex");
     shaderPrograms[1] = generateShader("fragment_flood", "vertex");
     shaderPrograms[2] = generateShader("fragment_display", "vertex_display");
-    shaderPrograms[3] = generateShader("fragment1", "vertex_display");
-    shaderPrograms[4] = generateShader("fragment2", "vertex_display");
+    shaderPrograms[3] = generateShader("fragment-paptex", "vertex_display");
+    shaderPrograms[4] = generateShader("fragment-aa", "vertex_display");
 }
 
 function handleLoadedTexture(texture, image) {
@@ -116,10 +116,6 @@ function createBufferTexture (texture, width, height) {
     gl.bindTexture(gl.TEXTURE_2D, texture);
     gl.texParameteri( gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST );
     gl.texParameteri( gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST );
-    //gl.texParameteri( gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_BORDER );
-    //gl.texParameteri( gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_BORDER );
-    //TODO: "zero outside"
-    //gl.texParameteriv( gl.TEXTURE_2D, gl.TEXTURE_BORDER_COLOR, GLblack );
     gl.texImage2D( gl.TEXTURE_2D, 0, gl.RGBA, width, height, 0, gl.RGBA, gl.UNSIGNED_BYTE, null );
     gl.bindTexture( gl.TEXTURE_2D, null);
 }
@@ -136,14 +132,8 @@ var Textures = new Array();
 function initTextures() {
     Textures[0] = gl.createTexture();
     Textures[0].image = new Image();
-    Textures[0].image.src = "test.png";
-    // Textures[0].image.onload = function () {
-        handleLoadedTexture(Textures[0], Textures[0].image);
-        //imWidth = Textures[0].image.width;
-        //imHeight = Textures[0].image.height;
-        //texw = imWidth;
-        //texh = imHeight;
-    // }
+    //Textures[0].image.src = "test.png";
+    handleLoadedTexture(Textures[0], Textures[0].image);
 
     Textures[1] = gl.createTexture();
     createBufferTexture(Textures[1], imWidth, imHeight);
@@ -212,9 +202,6 @@ function renderScene(shader, width, height) {
     gl.bindBuffer(gl.ARRAY_BUFFER, quadVertexTextureCoordBuffer);
     gl.vertexAttribPointer(shaderPrograms[shader].TextureCoord, quadVertexTextureCoordBuffer.itemSize, gl.FLOAT, false, 0, 0);
 
-    //gl.activeTexture(gl.TEXTURE0);
-    //gl.uniform1i(shaderPrograms[shader].texture, 0); // Texture unit 0
-    //updateShader(shader)
 
     gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, quadVertexIndexBuffer);    
 
@@ -225,50 +212,48 @@ function renderScene(shader, width, height) {
 
 function updateShader(shader){
     gl.useProgram(shaderPrograms[shader]);
+    
     // Zoom and pan the view
     gl.uniform1f(shaderPrograms[shader].uXoffset, xOffset);
     gl.uniform1f(shaderPrograms[shader].uYoffset, yOffset);
     gl.uniform1f(shaderPrograms[shader].uScale, scale);
 
-    //bla bla bla
+    // Update JFA variables
     gl.uniform1f(shaderPrograms[shader].texw, texw);
     gl.uniform1f(shaderPrograms[shader].texh, texh);
     gl.uniform1f(shaderPrograms[shader].step, stepsize);
     gl.uniform1f(shaderPrograms[shader].texlevels, texlevels);
     
-    //gl.uniform1f(shaderPrograms[shader].texture, null);
     gl.useProgram(null)
 }
 
 var stepsize = 0.0;
 var texlevels = 256.0;
-//var texlevels = 65536.0;
 var lastRendered = 1;
 var visShader = 3;
 function tempName() {
     stepsize = 0.0;
     updateShader(0);
+    // Init seed for JFA
     gl.bindTexture(gl.TEXTURE_2D, Textures[0]);
     gl.bindFramebuffer(gl.FRAMEBUFFER, framebuffer);
     lastRendered = 1;
     gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, Textures[lastRendered], null);
     renderScene(0, texw, texh);
-
+    // Perform jump flooding, till stepsize = 1
     stepsize = (texw > texh ? texw/2.0: texh/2.0);
     while (stepsize > 0.5) {
-        //console.log(stepsize);
         updateShader(1);
         gl.bindTexture(gl.TEXTURE_2D, Textures[lastRendered]);
         lastRendered = (lastRendered == 1 ? 2 : 1); // Swap 1 <-> 2
         // Swap which texture is attached to the FBO
         gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, Textures[lastRendered], null);
         renderScene(1, texw, texh);
-        //console.log(stepsize);
         stepsize = stepsize / 2;
     }
     gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+    // Bind the created distance field for rendering
     gl.bindTexture(gl.TEXTURE_2D, Textures[lastRendered]);
-    //gl.bindTexture(gl.TEXTURE_2D, Textures[0]);
 
     stepsize = 1.0;
     updateShader(visShader);
@@ -329,7 +314,7 @@ function WebGL() {
     };
     canvas.addEventListener('DOMMouseScroll', wheelHandler, false);
     canvas.addEventListener('mousewheel', wheelHandler, false);
-
+    
     initGL(canvas);
     initShaders();
     initBuffers();

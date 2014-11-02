@@ -212,39 +212,6 @@
         window.onload = init;
       </script>
 
-    <script id="VertexShader" type="x-shader/x-vertex">  
-        attribute vec3 VertexPosition;
-        attribute vec2 TextureCoord;
-        
-        uniform float uXoffset;
-        uniform float uYoffset;
-        uniform float uScale;
-
-        varying vec2 vTextureCoord;
-
-        void main( void )
-        {
-            vec3 pos = VertexPosition + vec3(uXoffset, uYoffset, 0.0);
-            pos = pos * uScale;
-            gl_Position = vec4(pos, 1.0);    
-            vTextureCoord = TextureCoord;
-        }
-
-    </script>
-
-    
-    <script id="FragmentShader" type="x-shader/x-fragment">  
-        #ifdef GL_ES
-        precision highp float;
-        #endif
-
-        varying vec2 vTextureCoord;
-        uniform sampler2D texture;
-        void main(void) {
-            gl_FragColor = texture2D(texture, vTextureCoord.st);
-        } 
-    </script>  
-
     <script id="vertex" type="x-shader/x-vertex">  
         #ifdef GL_ES
         precision highp float;
@@ -588,16 +555,16 @@
         vec2 distvec = remap(texel.rg);
         
         //Distance vec vis.
-        // vec2 rainbow = 0.5+0.5*(normalize(distvec));
-        // gl_FragColor = vec4(rainbow, 1.0-length(distvec)*4.0, 1.0);
+        vec2 rainbow = 0.5+0.5*(normalize(distvec));
+        gl_FragColor = vec4(rainbow, 1.0-length(distvec)*4.0, 1.0);
         
         // Distance vis.
-        float dist = length(distvec)+(texel.b-0.5)/texw;
-        gl_FragColor = vec4(vec2(mod(10.0*dist, 1.0)), texel.b, 1.0);
-        gl_FragColor = vec4(vec3(dist), 1.0);
+        //float dist = length(distvec)+(texel.b-0.5)/texw;
+        //gl_FragColor = vec4(vec2(mod(10.0*dist, 1.0)), texel.b, 1.0);
+        //gl_FragColor = vec4(vec3(dist), 1.0);
     }
 </script>
-<script id="fragment1" type="x-shader/x-fragment">
+<script id="fragment-paptex" type="x-shader/x-fragment">
     #ifdef GL_OES_standard_derivatives
     #extension GL_OES_standard_derivatives : enable
     #endif
@@ -727,10 +694,8 @@
       n += 0.0004*snoise(uv*1100.0);
       n += 0.0002*snoise(uv*2200.0);
       n += 0.0001*snoise(uv*4400.0);
-      // Make unsharp edges.
+      // Make text edges unsharp.
       D += n;
-      //float n2 = snoise(vec2(uv.x*7.0, uv.y*500.0));
-      //D += 0.0008*n2;
 
       // Perform anisotropic analytic antialiasing (fwidth() is slightly wrong)
       float aastep = length(vec2(dFdx(D), dFdy(D)));
@@ -738,25 +703,20 @@
       // 'pattern' is 1 where D>0, 0 where D<0, with proper AA around D=0.
       float pattern = smoothstep(-aastep, aastep, D);
       
-      // Misscolored paper grains.
-      float n2 = snoise(uv*60.0);
-      float n3 = snoise(uv*30.0)*0.5 + 0.5;
-      n3 = smoothstep(0.8, 0.9, n3);
-      //float val = smoothstep(0.95, 0.97, n3*(1.0-abs(n2)));
-      //vec3 temp = vec3(val*0.9, val*0.8, val*0.6);
-
       // Paper and print colors.
       // Yellow tinted paper
       vec3 paper = vec3(0.90 + abs(n)*90.0, 0.90 + abs(n)*90.0, 0.70 + abs(n)*90.0);
-      //paper -= temp;
-      vec3 print = vec3(0.1 + abs(n)*90.0);
-      vec3 fragcolor = mix(print, paper, pattern);
+      // Print color
+      vec3 print = vec3(0.1);
+      //Mis print and paper color
+      vec3 printpapermix = mix(print, paper, abs(n)*250.0);
+      vec3 fragcolor = mix(printpapermix, paper, pattern);
+      
       // Final fragment color
-      // gl_FragColor = vec4(temp, 1.0);
       gl_FragColor = vec4(fragcolor, 1.0);
     }
 </script>
-<script id="fragment2" type="x-shader/x-fragment">
+<script id="fragment-aa" type="x-shader/x-fragment">
     #ifdef GL_OES_standard_derivatives
     #extension GL_OES_standard_derivatives : enable
     #endif
